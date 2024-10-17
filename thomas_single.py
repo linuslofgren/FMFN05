@@ -24,6 +24,30 @@ def f(state, t, b):
     x, y, z = state
     return (np.sin(y)-b*x, np.sin(z)-b*y, np.sin(x)-b*z)
 
+def jacobian(x, y, z, b):
+    return np.array([
+        [-b, np.cos(y), 0],
+        [0, -b, np.cos(z)],
+        [np.cos(x), 0, -b]
+    ])
+
+def jac(a, b):
+    x, y, z = a
+    return jacobian(x, y, z, b)
+
+def fun(a, b):
+    return f(a, 0, b)
+
+from scipy import optimize
+
+soln = optimize.root(fun, [2.5,2.5,2.5], jac=jac, args=(b,))
+zero = soln.x
+
+from scipy.linalg import eigh
+
+w, v = eigh(jac(zero, b))
+print(w, v)
+
 
 fig = plt.figure(figsize=(20, 8))
 ax = fig.add_axes([0, 0, 1, 1], projection='3d')
@@ -44,6 +68,9 @@ ax.zaxis._axinfo["grid"]['color'] =  (1,1,1,0)
 from itertools import product
 
 a = range(-10,10, 4)
+
+# for eig in v:
+#     plt.quiver(*zero, *eig, arrow_length_ratio=1.0)
 
 for xi, yi, zi in product(a, a, a):
     state = [xi, yi, zi]

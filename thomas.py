@@ -6,7 +6,7 @@ from matplotlib.animation import FuncAnimation
 
 
 
-b_vals = np.linspace(0, 0.21, 400)
+b_vals = np.linspace(0, 0.3, 400)
 # a = 0.25
 # c = 2
 
