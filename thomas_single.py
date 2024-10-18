@@ -11,7 +11,7 @@ matplotlib.rcParams['font.family'] = 'STIXGeneral'
 
 
 b_vals = np.linspace(0, 0.21, 400)
-b = 0.1
+b = 0.2
 # a = 0.25
 # c = 2
 

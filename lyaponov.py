@@ -202,12 +202,36 @@ def jac(state, t):
         [np.cos(x), 0, -b]
     ])
 
-b = 0.32899010224273929
+def kaplan_yorke(lyapunov_exponents):
+    lyapunov_exponents.sort(reverse=True)
+    sum_of_exponents = 0
+    j = 0
+    for _ in range(len(lyapunov_exponents)):
+        sum_of_exponents += lyapunov_exponents[_]
+
+        if sum_of_exponents >=0:
+            j +=1
+        else:
+            pass
+    
+    sum_to_j = 0
+    for _ in range(j):
+        sum_to_j += lyapunov_exponents[_]
+    
+    if j == len(lyapunov_exponents):
+        KY_dimension = j
+    else:
+        KY_dimension = j+sum_to_j/np.abs(lyapunov_exponents[j])
+    print(KY_dimension)
+    return KY_dimension
+b = 0.2
 
 x0 = np.array([1.0, 1.0, 1.0])
 t0 = 0.0
 dt = 0.1
 continuous_system = DynamicalSystem.ContinuousDS(x0, t0, f, jac, dt)
-mLCEr, history = LCE(continuous_system, 3, 0, 10**8, True)
+mLCEr, history = LCE(continuous_system, 3, 0, 10**7, True)
 print(history)
 print(mLCEr)
+
+kaplan_yorke(mLCEr.tolist())

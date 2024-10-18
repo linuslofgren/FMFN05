@@ -19,11 +19,11 @@ def sinc_function(x):
     return np.sinc(x/np.pi)
 
 def equation(x,b):
-    return sinc_function(x)-b
+    return np.sin(x)-b*x
 
 def fixed_points(b, x_min, x_max, num_points=1000):
     x_vals = np.linspace(x_min, x_max, num_points)
-    y_vals = sinc_function(x_vals) - b
+    y_vals = np.sin(x_vals)-b*x_vals
     
     roots = []
     if b == 1:
@@ -36,17 +36,26 @@ def fixed_points(b, x_min, x_max, num_points=1000):
                     roots.append(root_result.root)
         return roots
 
+def Jacobian_matrix(b,fixed_point):
+    Jacobian = [[-b, np.cos(fixed_point), 0], 
+                [0, -b, np.cos(fixed_point)],
+                [np.cos(fixed_point), 0, -b]]
+    eigvalues, eigvector = np.linalg.eigh(Jacobian)
+    return eigvalues, eigvector
 
 # Parameters
 b = 0.2  # A smaller value of b typically leads to chaotic behavior
 t_max = 1000
 dt = 0.01
-t = np.linspace(0, t_max, 100000)
+t = np.linspace(0, t_max, 10000)
 x_min = -50
 x_max = 50
 
 fixed_point = fixed_points(b, x_min, x_max)
 print(fixed_point)
+eigvalues, eigvectors = Jacobian_matrix(b, fixed_point[-1])
+print(eigvalues)
+print(eigvectors)
 
 # Initial condition
 initial_state = [0.1, 0.1, -0.1]  # Chaotic behavior typically arises with small perturbations
@@ -75,7 +84,11 @@ ax.add_collection(lc)
 
 # Plot fixed points as scatter
 ax.scatter(fixed_point, fixed_point, fixed_point, color='red')
+origin=np.array([[fixed_point[-1], fixed_point[-1], fixed_point[-1]]])
+eigvectors = np.array(eigvectors)
 
+#for vec in eigvectors:
+#    ax.quiver(*origin[0], *vec, color='b', arrow_length_ratio=0.1)
 # Set axis labels and title
 ax.set_title('Thomas Flow with Gradient Color')
 ax.set_xlabel('X')
