@@ -83,8 +83,8 @@ else:
     v1 = (0, -plane[2], plane[1])
 v2 = np.cross(plane, v1)
 O = np.array([0,0,0]) if D==0 else np.array([0, 0, -D/plane[2]])
-poncare_points = []
-xx, yy = np.meshgrid(range(-4, 4), range(-4, 4))
+
+xx, yy = np.meshgrid(range(-8, 8), range(-8, 8))
 zz = (-plane[0]*xx-plane[1]*yy-D)/plane[2]
 ax.plot_surface(xx, yy, zz, alpha=0.2)
 ax.quiver(xx[0,0], yy[0,0], zz[0,0], v1[0], v1[1], v1[2])
@@ -92,32 +92,52 @@ ax.quiver(xx[0,0], yy[0,0], zz[0,0], v2[0], v2[1], v2[2])
 ax.set_aspect('equal', adjustable='box')
 
 a = range(-10,10, 4)
-for xi, yi, zi in tqdm(product(a, a, a), total=len(a)**3):
-    # xi = 0.2
-    # yi = 0.1
-    # zi = -0.1
-    state = [xi, yi, zi]
-    # state=[0.1, 0.1, -0.1]
-    soln = odeint(f, state, t=np.linspace(0,100,1000), args=(b,) ,rtol=1e-6)
 
-    x = soln.T[0]
-    y = soln.T[1]
-    z = soln.T[2]
-    ax.plot(x, y, z, label=f"Trajectory in 3D space b={b}", color="orange", alpha=0.1)
-    for v in zip(x, y, z):
-        d = (np.dot(v, plane)+D)/np.linalg.norm(plane)
-        if(np.abs(d) < 0.1):
-            # plt.scatter(v[0], v[1], v[2], c="k", s=1)
-            P = np.array([v[0]-plane[0]*np.abs(d),v[1]-plane[1]*np.abs(d),v[2]-plane[2]*np.abs(d)])
-            u1 = np.dot(P-O, v1)/np.linalg.norm(v1)
-            u2 = np.dot(P-O, v2)/np.linalg.norm(v2)
-            poncare_points.append([u1, u2])
-poincare = np.array(poncare_points)
-if len(poincare):
-    ax_pon.scatter(poincare[:,0], poincare[:,1], c="k", s=0.6)
-ax_pon.set_aspect('equal')
-# ax.plot(x, y, z, label=f"Trajectory in 3D space b={b}", color="orange", alpha=0.1)
-# plt.title(f"Trajectory in 3D space b={b}")
-# plt.tight_layout()
+
+
+
+def g_traj(b):
+    ax_pon.cla()
+    ax_pon.set_xlim(-12, 12)
+    ax_pon.set_ylim(-12, 12)
+    # ax_pon.set_zlim(-12, 12)
+    poncare_points = []
+    for xi, yi, zi in tqdm(product(a, a, a), total=len(a)**3):
+        # xi = 0.2
+        # yi = 0.1
+        # zi = -0.1
+        state = [xi, yi, zi]
+        # state=[0.1, 0.1, -0.1]
+        soln = odeint(f, state, t=np.linspace(0,100,1000), args=(b,) ,rtol=1e-6)
+
+        x = soln.T[0]
+        y = soln.T[1]
+        z = soln.T[2]
+        ax.plot(x, y, z, label=f"Trajectory in 3D space b={b}", color="orange", alpha=0.1)
+        for v in zip(x, y, z):
+            d = (np.dot(v, plane)+D)/np.linalg.norm(plane)
+            if(np.abs(d) < 0.1):
+                # plt.scatter(v[0], v[1], v[2], c="k", s=1)
+                P = np.array([v[0]-plane[0]*np.abs(d),v[1]-plane[1]*np.abs(d),v[2]-plane[2]*np.abs(d)])
+                u1 = np.dot(P-O, v1)/np.linalg.norm(v1)
+                u2 = np.dot(P-O, v2)/np.linalg.norm(v2)
+                poncare_points.append([u1, u2])
+    poincare = np.array(poncare_points)
+    if len(poincare):
+        ax_pon.scatter(poincare[:,0], poincare[:,1], c="k", s=0.6)
+    ax_pon.set_aspect('equal')
+    ax.set_title(f"b={b:.2f}")
+
+b_vals = np.linspace(0, 0.3, 400)
+
+def update(frame):
+    print(frame)
+    g_traj(b_vals[frame])
+
+g_traj(0.2)
+
+# ani = FuncAnimation(fig, update, frames=len(b_vals), interval=1000 / 4) 
+
+# ani.save('poincare_b_low.mp4', writer='ffmpeg', fps=24)
+
 plt.show()
-# plt.savefig("thomas_flower", dpi=200)
