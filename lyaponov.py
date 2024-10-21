@@ -190,11 +190,11 @@ def ADJ(CLV : list):
     return ADJ
 
 
-def f(state, t):
+def f(state, t, b):
     x, y, z = state
     return np.array((np.sin(y)-b*x, np.sin(z)-b*y, np.sin(x)-b*z))
 
-def jac(state, t):
+def jac(state, t, b):
     x, y, z = state
     return np.array([
         [-b, np.cos(y), 0],
@@ -224,19 +224,52 @@ def kaplan_yorke(lyapunov_exponents):
         KY_dimension = j+sum_to_j/np.abs(lyapunov_exponents[j])
     print(KY_dimension)
     return KY_dimension
-b = 0.2
-
-x0 = np.array([1.0, 1.0, 1.0])
-t0 = 0.0
-dt = 0.1
-continuous_system = DynamicalSystem.ContinuousDS(x0, t0, f, jac, dt)
-mLCEr, history = LCE(continuous_system, 3, 0, 10**7, True)
-print(history)
-print(mLCEr)
-
-dim = kaplan_yorke(mLCEr.tolist())
-
-print(dim)
 
 
-# 2.431108234844971
+GENERATE = False
+
+if GENERATE:
+    bs = np.linspace(0, 1.1, 1000)
+    kdim = np.zeros_like(bs)
+    lyaps = np.zeros((bs.size, 3))
+    for i, b in enumerate(bs):
+        print("b=", b)
+
+        x0 = np.array([0.1, 0.2, 0.3])
+        t0 = 0.0
+        dt = 0.1
+        continuous_system = DynamicalSystem.ContinuousDS(x0, t0, f, jac, dt, b=b)
+        mLCEr, history = LCE(continuous_system, 3, 500, 1000, True)
+        print(history)
+        print(mLCEr)
+
+        lyaps[i] = mLCEr
+
+        dim = kaplan_yorke(mLCEr.tolist())
+
+        print(dim)
+        kdim[i] = dim
+
+    data = np.array([bs, kdim, lyaps])
+
+    with open("lyap_data.npy", "wb") as f:
+        np.save(f, bs)
+        np.save(f, kdim)
+        np.save(f, lyaps)
+
+else:
+    with open("lyap_data.npy", "rb") as f:
+        bs = np.load(f)
+        kdim = np.load(f)
+        lyaps = np.load(f)
+
+import matplotlib.pyplot as plt
+    # 2.431108234844971
+
+
+fig, (ax1, ax2) = plt.subplots(2)
+ax1.plot(bs, kdim, "k-")
+ax2.plot(bs, lyaps, "k")
+ax1.invert_xaxis()
+ax2.invert_xaxis()
+plt.show()
