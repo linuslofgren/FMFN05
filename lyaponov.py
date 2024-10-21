@@ -1,7 +1,7 @@
 # Libraires
 import numpy as np
 import DynamicalSystem
-
+from tqdm import tqdm
 # Compute maximal 1-LCE
 def mLCE(system : DynamicalSystem, n_forward : int, n_compute : int, keep : bool):
     '''
@@ -24,7 +24,7 @@ def mLCE(system : DynamicalSystem, n_forward : int, n_compute : int, keep : bool
     w = w / np.linalg.norm(w)
     if keep:
         history = np.zeros(n_compute)
-        for i in range(1, n_compute + 1):
+        for i in tqdm(range(1, n_compute + 1)):
             w = system.next_LTM(w)
             system.forward(1, False)
             mLCE += np.log(np.linalg.norm(w))
@@ -63,7 +63,7 @@ def LCE(system : DynamicalSystem, p : int, n_forward : int, n_compute : int, kee
     LCE = np.zeros(p)
     if keep:
         history = np.zeros((n_compute, p))
-        for i in range(1, n_compute + 1):
+        for i in tqdm(range(1, n_compute + 1)):
             W = system.next_LTM(W)
             system.forward(1, False)
             W, R = np.linalg.qr(W)
@@ -73,7 +73,7 @@ def LCE(system : DynamicalSystem, p : int, n_forward : int, n_compute : int, kee
         LCE = LCE / (n_compute * system.dt)
         return LCE, history
     else:
-        for _ in range(n_compute):
+        for _ in tqdm(range(n_compute)):
             W = system.next_LTM(W)
             system.forward(1, False)
             W, R = np.linalg.qr(W)
@@ -234,4 +234,9 @@ mLCEr, history = LCE(continuous_system, 3, 0, 10**7, True)
 print(history)
 print(mLCEr)
 
-kaplan_yorke(mLCEr.tolist())
+dim = kaplan_yorke(mLCEr.tolist())
+
+print(dim)
+
+
+# 2.431108234844971

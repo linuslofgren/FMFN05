@@ -85,3 +85,4 @@ for xi, yi, zi in product(a, a, a):
     plt.title(f"Trajectory in 3D space b={b}")
 plt.tight_layout()
 plt.show()
+# plt.savefig("thomas_flower", dpi=200)
