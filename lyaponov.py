@@ -63,9 +63,9 @@ def LCE(system : DynamicalSystem, p : int, n_forward : int, n_compute : int, kee
     LCE = np.zeros(p)
     if keep:
         history = np.zeros((n_compute, p))
-        for i in tqdm(range(1, n_compute + 1)):
+        for i in range(1, n_compute + 1):
             W = system.next_LTM(W)
-            system.forward(1, False)
+            system.forward(1, True)
             W, R = np.linalg.qr(W)
             for j in range(p):
                 LCE[j] += np.log(np.abs(R[j,j]))
@@ -73,9 +73,9 @@ def LCE(system : DynamicalSystem, p : int, n_forward : int, n_compute : int, kee
         LCE = LCE / (n_compute * system.dt)
         return LCE, history
     else:
-        for _ in tqdm(range(n_compute)):
+        for _ in range(n_compute):
             W = system.next_LTM(W)
-            system.forward(1, False)
+            system.forward(1, True)
             W, R = np.linalg.qr(W)
             for j in range(p):
                 LCE[j] += np.log(np.abs(R[j,j]))
@@ -202,7 +202,15 @@ def jac(state, t, b):
         [np.cos(x), 0, -b]
     ])
 
-def kaplan_yorke(lyapunov_exponents):
+
+def kaplan_yorke(l):
+    l = np.sort(l)[::-1]
+    j = 0
+    while np.sum(l[:j+1]) >= 0 and j < l.size - 1:
+        j+=1
+    return j+np.sum(l[:j])/np.abs(l[j])
+
+def kaplan_yorke_old(lyapunov_exponents):
     lyapunov_exponents.sort(reverse=True)
     sum_of_exponents = 0
     j = 0
@@ -226,50 +234,80 @@ def kaplan_yorke(lyapunov_exponents):
     return KY_dimension
 
 
+from scipy import optimize
 GENERATE = False
 
 if GENERATE:
-    bs = np.linspace(0, 1.1, 1000)
+    bs = np.linspace(0.0, 1.1, 10000)
     kdim = np.zeros_like(bs)
     lyaps = np.zeros((bs.size, 3))
-    for i, b in enumerate(bs):
-        print("b=", b)
-
-        x0 = np.array([0.1, 0.2, 0.3])
+    lyaps_var = np.zeros((bs.size, 3))
+    for i, b in tqdm(enumerate(bs), total=bs.size):
+        # print("b=", b)
+        t=0
+        soln = optimize.root(f, [2.5,2.5,2.5], jac=jac, args=(t,b,))
+        zero = soln.x
+        delta = np.random.random((3))/1000
+        x0 = np.array(zero + delta)
+        print(x0)
         t0 = 0.0
         dt = 0.1
         continuous_system = DynamicalSystem.ContinuousDS(x0, t0, f, jac, dt, b=b)
-        mLCEr, history = LCE(continuous_system, 3, 500, 1000, True)
-        print(history)
-        print(mLCEr)
+        mLCEr, history = LCE(continuous_system, 3, 500, 700, True)
+        # print(history)
+
+        # print(mLCEr)
 
         lyaps[i] = mLCEr
+        lyaps_var[i] = np.var(history[-10:, :], axis=0)
 
         dim = kaplan_yorke(mLCEr.tolist())
 
-        print(dim)
+        # print(dim)
         kdim[i] = dim
 
-    data = np.array([bs, kdim, lyaps])
+    # data = np.array([bs, kdim, lyaps])
 
-    with open("lyap_data.npy", "wb") as f:
+    with open("lyap_data_accuracy_10000_subset_x0_n.npy", "wb") as f:
         np.save(f, bs)
         np.save(f, kdim)
         np.save(f, lyaps)
+        np.save(f, lyaps_var)
 
 else:
-    with open("lyap_data.npy", "rb") as f:
+    with open("lyap_data_accuracy_10000_subset_x0_n.npy", "rb") as f:
         bs = np.load(f)
         kdim = np.load(f)
         lyaps = np.load(f)
+        lyaps_var = np.load(f)
 
 import matplotlib.pyplot as plt
     # 2.431108234844971
 
+# print(lyaps)
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex=True)
+ax1.axhline(1, 0, 1, c="gray", linestyle="--", linewidth=0.4)
+ax1.axhline(2, 0, 1, c="gray", linestyle="--", linewidth=0.4)
+ax2.axhline(0, 0, 1, c="gray", linestyle="--", linewidth=0.4)
+ax1.scatter(bs, kdim, s=0.01, c="k")
+# ax1.plot(bs, kdim, c="k", linewidth=0.1)
+print(lyaps.shape)
+window_size = 100
+rolling_avg = np.zeros_like(lyaps)  # New array for storing rolling averages
+for i in range(3):
+    rolling_avg[:, i] = np.convolve(lyaps[:, i], np.ones(window_size) / window_size, "same")
+ax2.plot(bs, lyaps, "k", linewidth=0.1)
 
-fig, (ax1, ax2) = plt.subplots(2)
-ax1.plot(bs, kdim, "k-")
-ax2.plot(bs, lyaps, "k")
+rolling_kap = np.zeros_like(rolling_avg)
+print(rolling_avg.shape[0])
+for i in range(rolling_avg.shape[0]):
+    rolling_kap[i] = kaplan_yorke(rolling_avg[i])
+
+ax3.axhline(1, 0, 1, c="gray", linestyle="--", linewidth=0.4)
+ax3.axhline(2, 0, 1, c="gray", linestyle="--", linewidth=0.4)
+ax4.axhline(0, 0, 1, c="gray", linestyle="--", linewidth=0.4)
+ax3.plot(bs, rolling_kap, "k", linewidth=0.4)
+ax4.plot(bs, rolling_avg, "k", linewidth=0.4)
 ax1.invert_xaxis()
 ax2.invert_xaxis()
 plt.show()
